@@ -2,6 +2,8 @@
 
 """
     Mist_Meter
+    Detects whether it is foggy or not, based on webcam images
+    Copyright (C) 2021 Paul Schouten aka bosgnoom
 
     Grab image from webcam,
     run analysis:
