@@ -111,27 +111,31 @@ def calculate_fog_values(file_name):
     return (brightness[0][0], stdev[0][0], blur)
 
 
-def output_to_influx(brightness, stdev, blur, prob):
+def output_to_influx(brightness, stdev, blur, mist, prob):
     # Push to local influxdb. User credentials from config.ini
     client = InfluxDBClient(host=INFLUX_HOST, port=INFLUX_PORT,
                             username=INFLUX_USER, password=INFLUX_PASS)
     client.switch_database('mist_meter')
 
-    data = ["{} brightness={},stdev={},blur={},probability={}".format(
+    data = ["{} brightness={},stdev={},blur={},mist={},probability={}".format(
         "Aeneas",
         brightness,
         stdev,
         blur,
+        mist,
         prob)]
 
     client.write_points(data, database="mist_meter", protocol="line")
 
 
-def output_to_google_sheets(brightness, blur):
+def output_to_google_sheets(brightness, blur, mist, probability):
     # Push data to google sheet
     data = {'action': 'mistmeter',
             'blur': blur,
-            'brightness': brightness}
+            'brightness': brightness,
+            'timestamp': int(time.time()),
+            'mist': mist,
+            'probability': probability}
 
     req = requests.post(GOOGLE_SHEET_URL, data=data)
 
@@ -191,7 +195,7 @@ def test_svm(blur, brightness):
             process_mist_image('SVM voorspelt geen mist met waarschijnlijkheid {}...'.format(
                 prob), blur, brightness)
 
-    return prob
+    return mist, prob
 
 
 def process_mist_image(message, blur, bright):
@@ -258,10 +262,12 @@ def process_mist_image(message, blur, bright):
 
 def mist_detect():
     brightness, stdev, blur = calculate_fog_values(IMAGE)
+
     test_threshold(blur, brightness)
-    prob = test_svm(blur, brightness)
-    output_to_influx(brightness, stdev, blur, prob)
-    output_to_google_sheets(brightness, blur)
+    mist, prob = test_svm(blur, brightness)
+
+    output_to_influx(brightness, stdev, blur, mist, prob)
+    output_to_google_sheets(brightness, blur, mist, prob)
 
 
 if __name__ == "__main__":
@@ -273,7 +279,6 @@ if __name__ == "__main__":
 
     if args.verbose:
         # Verbose means logging.DEBUG here
-        print("Verbose argument is passed!")
         logger = logging.getLogger()
         logger.setLevel(logging.DEBUG)
 
