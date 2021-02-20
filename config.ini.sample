@@ -1,4 +1,4 @@
-[DEFAULT]
+[IMAGE]
 image = /home/pi/webcam/latest.jpg
 output = /var/www/html/roi.png
 fogfolder = /home/pi/mist_detector
@@ -12,11 +12,15 @@ blur = 15
 brightness = 100
 
 [INFLUX]
-user = [username]
-password = [password]
+host = localhost
+port = 8086
+user = usr
+password = pass
 
 [GOOGLE]
-url = https://script.google.com/macros/s/[some ID]/exec
+url = https://script.google.com/macros/s/...../exec
 
 [SIGNAL]
-bosgnoom = '+31234567890'
+paul = +31234567890
+dominique = +31234567891
+

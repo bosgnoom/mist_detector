@@ -61,14 +61,14 @@ logging.debug('OpenCV version: {}'.format(cv2.__version__))
 config = configparser.ConfigParser()
 config.read('/home/pi/mist_detector/config.ini')
 
-IMAGE = config['DEFAULT']['image']
-OUTPUT = config['DEFAULT']['output']
-FOGFOLDER = config['DEFAULT']['fogfolder']
+IMAGE = config['IMAGE']['image']
+OUTPUT = config['IMAGE']['output']
+FOGFOLDER = config['IMAGE']['fogfolder']
 
-ROI_X1 = int(config['DEFAULT']['roi_x1'])
-ROI_Y1 = int(config['DEFAULT']['roi_y1'])
-ROI_X2 = int(config['DEFAULT']['roi_x2'])
-ROI_Y2 = int(config['DEFAULT']['roi_y2'])
+ROI_X1 = int(config['IMAGE']['roi_x1'])
+ROI_Y1 = int(config['IMAGE']['roi_y1'])
+ROI_X2 = int(config['IMAGE']['roi_x2'])
+ROI_Y2 = int(config['IMAGE']['roi_y2'])
 
 THRESH_BLUR = int(config['THRESHOLD']['blur'])
 THRESH_BRIGHT = int(config['THRESHOLD']['brightness'])
@@ -78,9 +78,9 @@ GOOGLE_SHEET_URL = config['GOOGLE']['url']
 INFLUX_HOST = config['INFLUX']['host']
 INFLUX_PORT = int(config['INFLUX']['port'])
 INFLUX_USER = config['INFLUX']['user']
-INFLUX_PASS = config['INFLUX']['pass']
+INFLUX_PASS = config['INFLUX']['password']
 
-SIGNAL_USERS = config.items['SIGNAL']
+SIGNAL_USERS = config.items('SIGNAL')
 
 
 def calculate_fog_values(file_name):
@@ -196,7 +196,7 @@ def test_svm(blur, brightness):
 
 def process_mist_image(message, blur, bright):
     # Process image:
-    # - Resize if needed, 
+    # - Resize if needed,
     # - Draw rectangle around ROI
     # - Embed blur and brightness values
     # Push to signal messaging app
