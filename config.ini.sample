@@ -12,14 +12,11 @@ blur = 15
 brightness = 100
 
 [INFLUX]
-host = localhost
-port = 8086
-user = paul
-password = schouten
+user = [username]
+password = [password]
 
 [GOOGLE]
-url = https://script.google.com/macros/s/AKfycbwdCBxq2ofzwwRuIVZKBC4gwyWDPCq7MjL2C64OTPo1O8CodwaI2FUpxA/exec
+url = https://script.google.com/macros/s/[some ID]/exec
 
 [SIGNAL]
-paul = '+31615511544'
-; dominique = '+31611614999'
+bosgnoom = '+31234567890'

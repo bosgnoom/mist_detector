@@ -32,6 +32,11 @@
     2021-02-13:
     - Integration with signal: push image when fog is detected
     - Integration with google sheet: push values to remote database
+
+    2021-02-20:
+    - All settings into config.ini
+    - Remove identities and passwords from this file
+    - Push to github
     
 """
 
@@ -59,12 +64,23 @@ config.read('/home/pi/mist_detector/config.ini')
 IMAGE = config['DEFAULT']['image']
 OUTPUT = config['DEFAULT']['output']
 FOGFOLDER = config['DEFAULT']['fogfolder']
+
 ROI_X1 = int(config['DEFAULT']['roi_x1'])
 ROI_Y1 = int(config['DEFAULT']['roi_y1'])
 ROI_X2 = int(config['DEFAULT']['roi_x2'])
 ROI_Y2 = int(config['DEFAULT']['roi_y2'])
+
 THRESH_BLUR = int(config['THRESHOLD']['blur'])
 THRESH_BRIGHT = int(config['THRESHOLD']['brightness'])
+
+GOOGLE_SHEET_URL = config['GOOGLE']['url']
+
+INFLUX_HOST = config['INFLUX']['host']
+INFLUX_PORT = int(config['INFLUX']['port'])
+INFLUX_USER = config['INFLUX']['user']
+INFLUX_PASS = config['INFLUX']['pass']
+
+SIGNAL_USERS = config.items['SIGNAL']
 
 
 def calculate_fog_values(file_name):
@@ -91,13 +107,14 @@ def calculate_fog_values(file_name):
     blur = cv2.Laplacian(gray, cv2.CV_64F).var()
     logging.debug('Blur value: {}'.format(blur))
 
+    # Flatten and return values of brightness, stdev and blur
     return (brightness[0][0], stdev[0][0], blur)
 
 
 def output_to_influx(brightness, stdev, blur, prob):
-    # Push to local influxdb. User credentials here is bad, but it works...
-    client = InfluxDBClient(host='localhost', port=8086,
-                            username='paul', password='schouten')
+    # Push to local influxdb. User credentials from config.ini
+    client = InfluxDBClient(host=INFLUX_HOST, port=INFLUX_PORT,
+                            username=INFLUX_USER, password=INFLUX_PASS)
     client.switch_database('mist_meter')
 
     data = ["{} brightness={},stdev={},blur={},probability={}".format(
@@ -111,13 +128,12 @@ def output_to_influx(brightness, stdev, blur, prob):
 
 
 def output_to_google_sheets(brightness, blur):
-    # Push data to Dominique's google sheet
-    url = 'https://script.google.com/macros/s/AKfycbwdCBxq2ofzwwRuIVZKBC4gwyWDPCq7MjL2C64OTPo1O8CodwaI2FUpxA/exec'
+    # Push data to google sheet
     data = {'action': 'mistmeter',
             'blur': blur,
             'brightness': brightness}
 
-    req = requests.post(url, data=data)
+    req = requests.post(GOOGLE_SHEET_URL, data=data)
 
     logging.debug(req.text)
 
@@ -135,7 +151,7 @@ def test_threshold(blur, bright):
     # adapt image,
     # send to receivers
     if (bright >= THRESH_BRIGHT) and (blur <= THRESH_BLUR):
-        process_blur_image('Threshold')
+        process_mist_image('Threshold')
 
 
 def test_svm(blur, brightness):
@@ -157,7 +173,7 @@ def test_svm(blur, brightness):
         probability=True
     )
 
-    logging.debug('Fitting blur and brightness values to model')
+    logging.debug('Fitting known blur and brightness values into model')
     clf.fit(X, Y)
     mist = clf.predict([[blur, brightness]])[0]
     prob = clf.predict_proba([[blur, brightness]])[0][0]
@@ -165,21 +181,26 @@ def test_svm(blur, brightness):
     logging.debug('Model result: {}'.format(mist))
     logging.debug('Probability: {}'.format(prob))
 
+    logging.debug('Check if probability is OK')
     if prob < 0.25:
-        # Probability is too low
+        # Probability is too low, send message to user, to alert doubtful result
         if mist == 1:
-            process_blur_image('SVM voorspelt mist met waarschijnlijkheid {}...'.format(
+            process_mist_image('SVM voorspelt mist met waarschijnlijkheid {}...'.format(
                 prob), blur, brightness)
         else:
-            process_blur_image('SVM voorspelt geen mist met waarschijnlijkheid {}...'.format(
+            process_mist_image('SVM voorspelt geen mist met waarschijnlijkheid {}...'.format(
                 prob), blur, brightness)
 
     return prob
 
 
-def process_blur_image(message, blur, bright):
+def process_mist_image(message, blur, bright):
+    # Process image:
+    # - Resize if needed, 
+    # - Draw rectangle around ROI
+    # - Embed blur and brightness values
     # Push to signal messaging app
-    
+
     # Values match foggy situation
     logging.debug("Image matches threshold values, processing image...")
 
@@ -224,9 +245,15 @@ def process_blur_image(message, blur, bright):
     logging.debug("Sending image to receiver")
     bus = SystemBus()
     signal = bus.get('org.asamk.Signal')
+
+    send_list = []
+    for name, number in SIGNAL_USERS:
+        logging.debug('Adding {} with number {}'.format(name, number))
+        send_list.append(number)
+
     signal.sendMessage(message,
                        [filename],
-                       ['+31615511544', '+31611614999'])
+                       send_list)
 
 
 def mist_detect():
