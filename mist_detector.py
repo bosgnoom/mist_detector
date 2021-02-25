@@ -188,7 +188,7 @@ def test_svm(blur, brightness):
     logging.debug('Probability: {}'.format(prob))
 
     logging.debug('Check if probability is OK')
-    if prob < 0.25:
+    if (prob < 0.3) or (mist == 1):
         # Probability is too low, send message to user, to alert doubtful result
         if mist == 1:
             process_mist_image('SVM voorspelt mist met waarschijnlijkheid {}...'.format(

@@ -1,5 +1,6 @@
 /.vscode
 *.png
+*.jpg
 /__pycache__
 /mist_detector.code-workspace
 /screenshots
