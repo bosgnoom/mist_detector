@@ -52,6 +52,7 @@ from pydbus import SystemBus
 import argparse
 import csv
 from sklearn import svm
+import math
 
 
 # Logging, normal logging is CRITICAL
@@ -157,7 +158,7 @@ def test_threshold(blur, bright):
     # adapt image,
     # send to receivers
     if (bright >= THRESH_BRIGHT) and (blur <= THRESH_BLUR):
-        process_mist_image('Threshold')
+        process_mist_image('Threshold', blur, bright)
 
 
 def test_svm(blur, brightness):
@@ -169,28 +170,31 @@ def test_svm(blur, brightness):
         X = []
         Y = []
         for row in csvreader:
-            X.append([row['blur'], row['brightness']])
-            Y.append(row['mist'])
+            blur_value = float(row['blur'])
+            bright_value = float(row['brightness'])
+            mist_value = float(row['mist'])
+            
+            X.append([blur_value, bright_value])
+            Y.append(mist_value)
+            #logging.debug('Type of row[blur]: {}'.format(type(blur_value)))
 
     logging.debug('Apply SVM')
     clf = svm.SVC(
-        kernel='linear',
-        gamma='scale',
-        probability=True
-    )
+                probability=True
+    ) #kernel='linear',gamma='scale',
 
     logging.debug('Fitting known blur and brightness values into model')
     clf.fit(X, Y)
-    mist = clf.predict([[blur, brightness]])[0]
+    mist = float(clf.predict([[blur, brightness]])[0])
     prob = clf.predict_proba([[blur, brightness]])[0][0]
 
     logging.debug('Model result: {}'.format(mist))
     logging.debug('Probability: {}'.format(prob))
 
     logging.debug('Check if probability is OK')
-    if (prob < 0.3) or (mist == 1):
+    if (prob < 0.6) or (mist == 1):
         # Probability is too low, send message to user, to alert doubtful result
-        if mist == 1:
+        if mist > 0:
             process_mist_image('SVM voorspelt mist met waarschijnlijkheid {}...'.format(
                 prob), blur, brightness)
         else:
@@ -233,7 +237,7 @@ def process_mist_image(message, blur, bright):
     # Embed fog values in image
     cv2.putText(
         image,
-        'Blur: {:.0f} Brightness: {:.0f}'.format(blur, bright),
+        'Blur: {:.2f} Brightness: {:.2f}'.format(blur, bright),
         (50, 150),
         cv2.FONT_HERSHEY_PLAIN,
         2,
@@ -257,15 +261,15 @@ def process_mist_image(message, blur, bright):
         logging.debug('Adding {} with number {}'.format(name, number))
         send_list.append(number)
 
-    signal.sendMessage(message,
-                       [filename],
-                       send_list)
+    #signal.sendMessage(message,
+    #                   [filename],
+    #                   send_list)
 
 
 def mist_detect():
     brightness, stdev, blur = calculate_fog_values(IMAGE)
 
-    test_threshold(blur, brightness)
+    #test_threshold(blur, brightness)
     mist, prob = test_svm(blur, brightness)
 
     output_to_influx(brightness, stdev, blur, mist, prob)
