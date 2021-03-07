@@ -131,13 +131,14 @@ def output_to_influx(brightness, stdev, blur, mist, prob):
     client.write_points(data, database="mist_meter", protocol="line")
 
 
-def output_to_google_sheets(brightness, blur, mist, probability):
+def output_to_google_sheets(brightness, stdev, blur, mist, probability):
     # Push data to google sheet
     data = {'action': 'mistmeter',
             'blur': blur,
             'brightness': brightness,
             'timestamp': int(time.time()),
             'mist': mist,
+            'stdev': stdev,
             'probability': probability}
 
     req = requests.post(GOOGLE_SHEET_URL, data=data)
@@ -273,7 +274,7 @@ def mist_detect():
     mist, prob = test_svm(blur, brightness)
 
     output_to_influx(brightness, stdev, blur, mist, prob)
-    output_to_google_sheets(brightness, blur, mist, prob)
+    output_to_google_sheets(brightness, stdev, blur, mist, prob)
 
 
 if __name__ == "__main__":

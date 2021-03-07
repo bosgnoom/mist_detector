@@ -1,4 +1,4 @@
-// For google sheets
+// For Google sheets
 
 // Usage
 //  1. Enter sheet name where data is to be written below
@@ -60,6 +60,7 @@ function mistmeter(e) {
   var timestamp = e.parameter.timestamp;
   var mist = e.parameter.mist;
   var probability = e.parameter.probability;
+  var stdev = e.parameter.stdev;
 
   // more efficient to set values as [][] array than individually
   //sheet.getRange(rowId, 1, 1, numColumns).setValues([row]);
@@ -68,6 +69,7 @@ function mistmeter(e) {
   sheet.getRange(3, 2).setValue(timestamp);
   sheet.getRange(4, 2).setValue(mist);
   sheet.getRange(5, 2).setValue(probability);
+  sheet.getRange(6, 2).setValue(stdev);
 
   // return json success results
   return ContentService
