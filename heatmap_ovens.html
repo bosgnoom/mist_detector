@@ -43,7 +43,7 @@
 
 <!-- Heatmap script-->
 <script>
-    // set the dimensions and margins of the graph
+    // Set the dimensions and margins of the graph
     var margin = { top: 80, right: 25, bottom: 30, left: 50 },
         width = (0.8 * window.innerWidth) - margin.left - margin.right,
         height = (0.8 * window.innerHeight) - margin.top - margin.bottom;
@@ -85,87 +85,34 @@
         "width": "All"
     };
 
-    var selection = gegevens;
-
-    // Labels of row and columns -> unique identifier of the column called 'group' and 'variable'
-    var myGroups = d3.map(selection, function (d) { return d.XT; }).keys().sort()        // XT
-    var myVars = d3.map(selection, function (d) { return d.Workcenter; }).keys().sort()  // FO
-
-    // Fill data (array of dicts) 
-    // Eerst een lege array of dicts bouwen (kan dit niet beter???)
-    let data = [];
-    myGroups.forEach(function (d) {
-        myVars.forEach(function (e) {
-            data.push({
-                "id": d + "-" + e,
-                "Workcenter": e,
-                "XT": d,
-                "FO_IN": 0,
-                "FO_OUT": 0,
-            });
-        })
-    })
-
-    // Nu de array vullen, op basis van een id
-    selection.forEach(function (d) {
-        //console.log(d);
-        let id = d.XT + "-" + d.Workcenter;
-        data.find(function (p) {
-            if (p.id == id) {
-                p.FO_IN += Math.round(d.FO_IN);
-                p.FO_OUT += Math.round(d.FO_OUT);
-            }
-        })
-    });
-    //console.log(data);
-
-    // Build X scales and axis:
+    // Prepare X scale and axis:
     var x = d3.scaleBand()
-        .range([0, width])
-        .domain(myGroups)
-        .padding(0.05);
+        .padding(0.05)
+        .range([0, width]);
 
     var xAxis = svg.append("g")
         .style("font-size", 15)
         .attr("transform", "translate(0," + height + ")")
         .call(d3.axisBottom(x));
 
-    // Build Y scales and axis:
+    // Prepare Y scale and axis:
     var y = d3.scaleBand()
-        .range([height, 0])
-        .domain(myVars)
-        .padding(0.05);
+        .padding(0.05)
+        .range([height, 0]);
 
     var yAxis = svg.append("g")
         .style("font-size", 15)
         .call(d3.axisLeft(y));
 
-    // Build value scale:
-    let z_values = data.map(d => d.FO_OUT);
-    let z_scale = Math.max(...z_values);
-    let z = d3.scaleSqrt()
-        .domain([0, z_scale])
-        .range([5, 0.5 * Math.min(x.bandwidth(), y.bandwidth())]);
-    //console.log(y.bandwidth());
+    // Prepare Z scale (radius is a measure for amount)
+    let z = d3.scaleSqrt();
 
-    // Minimum en maximum opzoeken
-    var yields = data.map(
-        function (el) {
-            let yield = 0;
-            if (el.FO_IN > 0) { yield = el.FO_OUT / el.FO_IN; }
-            return yield;
-        });
-    //console.log(yields);
-    var yield_min = Math.max(Math.min(...yields), 0.70);   // Limit yield to 75%
-    var yield_max = Math.min(Math.max(...yields), 1);      // Limit yield to 100%
-    console.log(yield_min);
-    console.log(yield_max);
-    // Build color scale
+    // Build color scale (color is a measure for yield)
     var myColor = d3.scaleLinear()
-        .domain([yield_min, (yield_min + yield_max) / 2, yield_max])
+        .domain([0.7, 0.85, 1.0])
         .range(['red', 'orange', 'green']);
 
-    // create a tooltip
+    // Create tooltip (hover over cirlce)
     var tooltip = d3.select("#my_dataviz")
         .append("div")
         .style("opacity", 0)
@@ -175,7 +122,7 @@
         .style("border-width", "2px")
         .style("border-radius", "5px")
         .style("padding", "5px")
-        .style("position", "fixed")
+        .style("position", "fixed");
 
     // Three function that change the tooltip when user hover / move / leave a cell
     var mouseover = function (d) {
@@ -187,7 +134,7 @@
     }
     var mousemove = function (d) {
         tooltip
-            .html("Yield: " + Math.round(1000 * (d.FO_OUT / d.FO_IN)) / 10 + "%" + "<br>" + "Som FO_OUT: " + Math.round(d.FO_OUT) + " kg")
+            .html("Yield: " + Math.round(1000 * (d.FO_OUT / d.FO_IN)) / 10 + "%" + "<br>" + "Production: " + Math.round(d.FO_OUT) + " kg")
             .style("left", (d3.mouse(this)[0] + 80) + "px")
             .style("top", (d3.mouse(this)[1] + 70) + "px");
     }
@@ -199,189 +146,67 @@
             .style("opacity", 0.8)
     }
 
-    // add the circles
-    svg.selectAll("circle")
-        .data(data, function (d) { return d.XT + ':' + d.Workcenter; })
-        .enter()
-        .append("circle")
-        .filter(function (d) { return d.FO_OUT > 0 })
-        .attr("cx", function (d) { return x(d.XT) + x.bandwidth() / 2 })
-        .attr("cy", function (d) { return y(d.Workcenter) + y.bandwidth() / 2 })
-        .attr("r", function (d) { return z(d.FO_OUT) })
-        .style("fill", function (d) { return myColor(clamp((d.FO_OUT / d.FO_IN), 0.7, 1)) })
-        .style("stroke-width", 4)
-        .style("stroke", "none")
-        .style("opacity", 0.8)
-        .on("mouseover", mouseover)
-        .on("mousemove", mousemove)
-        .on("mouseleave", mouseleave)
-
-    // Type 1 knop
-    // Type 1 uit de gegevens halen
-    var type1 = d3.map(gegevens, function (d) {
-        return d['Type 1'];
-    }).keys().sort();
-
-    // All toevoegen aan het begin van de array (unshift)
-    type1.unshift('All');
-
-    // Initialize the button
-    d3.select('#type1')
-        .selectAll()
-        .data(type1)
-        .enter()
-        .append('option')
-        .text(function (d) { return d; })
-        .attr("value", function (d) { return d; });
-
-    d3.select('#type1')
-        .on("change", function (d) { // When button changes, run update function
-            type1_selectie = d3.select(this).property("value");
-            console.log("Nu verandert type 1 naar: " + type1_selectie);
-            keuzes.type1 = type1_selectie;
-            update_graph(keuzes);
-        });
-
-    // Type 2 knop
-    // Type 2 uit de gegevens halen
-    var type2 = d3.map(gegevens, function (d) {
-        return d['Type 2'];
-    }).keys().sort();
-
-    // All toevoegen aan het begin van de array (unshift)
-    type2.unshift('All');
-
-    // Initialize the button
-    d3.select('#type2')
-        .selectAll()
-        .data(type2)
-        .enter()
-        .append('option')
-        .text(function (d) { return d; })
-        .attr("value", function (d) { return d; });
-
-    d3.select('#type2')
-        .on("change", function (d) { // When button changes, run update function
-            type2_selectie = d3.select(this).property("value");
-            console.log("Nu verandert type 2 naar: " + type2_selectie);
-            keuzes.type2 = type2_selectie;
-            update_graph(keuzes);
-        });
-
-    // Type 3 knop
-    var type3 = d3.map(gegevens, function (d) {
-        return d['Type 3'];
-    }).keys().sort();
-    type3.unshift('All');
-
-    // Initialize the button
-    d3.select('#type3')
-        .selectAll()
-        .data(type3)
-        .enter()
-        .append('option')
-        .text(function (d) { return d; })
-        .attr("value", function (d) { return d; });
-
-    d3.select('#type3')
-        .on("change", function (d) { // When button changes, run update function
-            keuzes.type3 = d3.select(this).property("value");
-            update_graph(keuzes);
-        });
-
-    // Grade knop
-    var grade = d3.map(gegevens, function (d) {
-        return d['Grade'];
-    }).keys().sort((a, b) => a - b);
-    grade.unshift('All');
-
-    // Initialize the button
-    d3.select('#grade')
-        .selectAll()
-        .data(grade)
-        .enter()
-        .append('option')
-        .text(function (d) { return d; })
-        .attr("value", function (d) { return d; });
-
-    d3.select('#grade')
-        .on("change", function (d) { // When button changes, run update function
-            keuzes.grade = d3.select(this).property("value");
-            update_graph(keuzes);
-        });
-
-    // Thickness knop
-    var thickness = d3.map(gegevens, function (d) {
-        return d['Thickness'];
-    }).keys().sort((a, b) => a - b);
-    thickness.unshift('All');
-
-    // Initialize the button
-    d3.select('#thickness')
-        .selectAll()
-        .data(thickness)
-        .enter()
-        .append('option')
-        .text(function (d) { return d; })
-        .attr("value", function (d) { return d; });
-
-    d3.select('#thickness')
-        .on("change", function (d) { // When button changes, run update function
-            keuzes.thickness = d3.select(this).property("value");
-            update_graph(keuzes);
-        });
-
-    // width knop
-    var product_width = d3.map(gegevens, function (d) {
-        return d['Width'];
-    }).keys().sort((a, b) => a - b);
-    product_width.unshift('All');
-
-    // Initialize the button
-    d3.select('#width')
-        .selectAll()
-        .data(product_width)
-        .enter()
-        .append('option')
-        .text(function (d) { return d; })
-        .attr("value", function (d) { return d; });
-
-    d3.select('#width')
-        .on("change", function (d) { // When button changes, run update function
-            keuzes.width = d3.select(this).property("value");
-            update_graph(keuzes);
-        });
-
-
-
+    // Update function for graph, draw circles
     function update_graph(geselecteerd) {
         console.log("Update functie aangeroepen");
-        console.log(geselecteerd);
 
-
-
-        // Distill which gegevens to show // Replace with filter function sometimes?
+        // Distill which data to show
         selection = new Array();
         gegevens.forEach(function (d) {
             if (
-                (d["Type 1"] == geselecteerd["type1"] || geselecteerd["type1"] == "All") &&
+                (d["Type 1"] == geselecteerd.type1 || geselecteerd.type1 == "All") &&
                 (d["Type 2"] == geselecteerd.type2 || geselecteerd.type2 == "All") &&
                 (d["Type 3"] == geselecteerd.type3 || geselecteerd.type3 == "All") &&
                 (d["Grade"] == geselecteerd.grade || geselecteerd.grade == "All") &&
                 (d["Thickness"] == geselecteerd.thickness || geselecteerd.thickness == "All") &&
                 (d["Width"] == geselecteerd.width || geselecteerd.width == "All")) {
-                // Types matchen
+
+                // Product matches selection
                 selection.push(d);
-                //console.log(d);
             }
         });
 
-        // Clear type2 select list
+        // Type 1 knop
+        // Remove all items from dropdown list
+        document.getElementById('type1').options.length = 0;
+
+        // Get types 1 from selection
+        var type1 = d3.map(gegevens, function (d) {
+            return d['Type 1'];
+        }).keys().sort();
+        
+        // Include "All" if needed
+        if (geselecteerd.type1 == "All") {
+            type1.unshift('All');
+        }
+
+        // Initialize the button
+        d3.select('#type1')
+            .selectAll()
+            .data(type1)
+            .enter()
+            .append('option')
+            .text(function (d) { return d; })
+            .attr("value", function (d) { return d; });
+
+        // Add onchange event to button
+        d3.select('#type1')
+            .on("change", function (d) { // When button changes, run update function
+                keuzes.type1 = d3.select(this).property("value");
+                update_graph(keuzes);
+            });
+
+        // Type 2 knop
+        // Type 2 uit de gegevens halen
         document.getElementById('type2').options.length = 0;
-        type2 = d3.map(selection, function (d) {
+        var type2 = d3.map(selection, function (d) {
             return d['Type 2'];
         }).keys().sort();
+
+        // All toevoegen aan het begin van de array (unshift)
         type2.unshift('All');
+
+        // Initialize the button
         d3.select('#type2')
             .selectAll()
             .data(type2)
@@ -389,7 +214,102 @@
             .append('option')
             .text(function (d) { return d; })
             .attr("value", function (d) { return d; });
-        console.log(type2);
+
+        d3.select('#type2')
+            .on("change", function (d) { // When button changes, run update function
+                type2_selectie = d3.select(this).property("value");
+                console.log("Nu verandert type 2 naar: " + type2_selectie);
+                keuzes.type2 = type2_selectie;
+                update_graph(keuzes);
+            });
+
+        // Type 3 knop
+        document.getElementById('type3').options.length = 0;
+        var type3 = d3.map(selection, function (d) {
+            return d['Type 3'];
+        }).keys().sort();
+        type3.unshift('All');
+
+        // Initialize the button
+        d3.select('#type3')
+            .selectAll()
+            .data(type3)
+            .enter()
+            .append('option')
+            .text(function (d) { return d; })
+            .attr("value", function (d) { return d; });
+
+        d3.select('#type3')
+            .on("change", function (d) { // When button changes, run update function
+                keuzes.type3 = d3.select(this).property("value");
+                update_graph(keuzes);
+            });
+
+        // Grade knop
+        document.getElementById('grade').options.length = 0;
+        var grade = d3.map(selection, function (d) {
+            return d['Grade'];
+        }).keys().sort((a, b) => a - b);
+        grade.unshift('All');
+
+        // Initialize the button
+        d3.select('#grade')
+            .selectAll()
+            .data(grade)
+            .enter()
+            .append('option')
+            .text(function (d) { return d; })
+            .attr("value", function (d) { return d; });
+
+        d3.select('#grade')
+            .on("change", function (d) { // When button changes, run update function
+                keuzes.grade = d3.select(this).property("value");
+                update_graph(keuzes);
+            });
+
+        // Thickness knop
+        document.getElementById('thickness').options.length = 0;
+        var thickness = d3.map(selection, function (d) {
+            return d['Thickness'];
+        }).keys().sort((a, b) => a - b);
+        thickness.unshift('All');
+
+        // Initialize the button
+        d3.select('#thickness')
+            .selectAll()
+            .data(thickness)
+            .enter()
+            .append('option')
+            .text(function (d) { return d; })
+            .attr("value", function (d) { return d; });
+
+        d3.select('#thickness')
+            .on("change", function (d) { // When button changes, run update function
+                keuzes.thickness = d3.select(this).property("value");
+                update_graph(keuzes);
+            });
+
+        // width knop
+        document.getElementById('width').options.length = 0;
+        var product_width = d3.map(selection, function (d) {
+            return d['Width'];
+        }).keys().sort((a, b) => a - b);
+        product_width.unshift('All');
+
+        // Initialize the button
+        d3.select('#width')
+            .selectAll()
+            .data(product_width)
+            .enter()
+            .append('option')
+            .text(function (d) { return d; })
+            .attr("value", function (d) { return d; });
+
+        d3.select('#width')
+            .on("change", function (d) { // When button changes, run update function
+                keuzes.width = d3.select(this).property("value");
+                update_graph(keuzes);
+            });
 
         // Labels of row and columns -> unique identifier of the column called 'group' and 'variable'
         myGroups = d3.map(selection, function (d) { return d.XT; }).keys().sort()        // XT
@@ -514,7 +434,7 @@
 
     }
 
-    // Catch resize of window
+    // Catch resize of window ** not implemented yet ***
     window.onresize = function () {
         console.log("Resized...");
         width = (0.8 * window.innerWidth) - margin.left - margin.right;
@@ -539,5 +459,8 @@
         };
         update_graph(keuzes);
     }
+
+    // Call update_graph for the first time, to show all data
+    update_graph(keuzes);
 
 </script>
