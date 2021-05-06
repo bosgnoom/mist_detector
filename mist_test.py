@@ -19,12 +19,12 @@ bus = SystemBus()
 signal = bus.get('org.asamk.Signal')
 
 
-for i,image in enumerate(paths.list_images('screenshots/')):
+for i, image in enumerate(paths.list_images('screenshots/')):
     brightness, stdev, blur = mist_detector.calculate_fog_values(image)
 
     img = cv2.imread(image)
     img = cv2.resize(img, (1280, 720), interpolation=cv2.INTER_CUBIC)
-    
+
     img = cv2.rectangle(
         img,
         (mist_detector.ROI_X1, mist_detector.ROI_Y1),
@@ -34,19 +34,17 @@ for i,image in enumerate(paths.list_images('screenshots/')):
     )
 
     cv2.putText(
-        img, 
+        img,
         'Blur: {:.0f} Brightness: {:.0f}'.format(blur, brightness),
         (50, 150),
-        cv2.FONT_HERSHEY_PLAIN,
-        3,
+        cv2.FONT_HERSHEY_TRIPLEX,
+        1,
         (0, 0, 255),
         2)
 
     cv2.imwrite('/var/www/html/img/{}.jpg'.format(i), img)
 
-    signal.sendMessage("Biep biep dit is de mist miep", 
-        ['/var/www/html/img/{}.jpg'.format(i)], 
-        ['+31615511544', '+31611614999'])
-
-
-
+    signal.sendMessage("Biep biep dit is de mist miep",
+                       ['/var/www/html/img/{}.jpg'.format(i)],
+                       ['+31615511544'])
+    #    ['+31615511544', '+31611614999'])
