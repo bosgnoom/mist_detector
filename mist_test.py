@@ -6,6 +6,10 @@
     Grab image from images
     Analyse fog values
     Write onto canvas
+
+    BUGGY
+
+    NEEDS CLEANUP! AS DIRECTORIES AND TELEPHONE NUMBERS ARE IN HERE
 """
 
 from imutils import paths
@@ -19,7 +23,7 @@ bus = SystemBus()
 signal = bus.get('org.asamk.Signal')
 
 
-for i, image in enumerate(paths.list_images('screenshots/')):
+for i, image in enumerate(paths.list_images('afstellen_cam/')):
     brightness, stdev, blur = mist_detector.calculate_fog_values(image)
 
     img = cv2.imread(image)
@@ -46,5 +50,5 @@ for i, image in enumerate(paths.list_images('screenshots/')):
 
     signal.sendMessage("Biep biep dit is de mist miep",
                        ['/var/www/html/img/{}.jpg'.format(i)],
-                       ['+31615511544'])
-    #    ['+31615511544', '+31611614999'])
+                       #['+31615511544'])
+                       ['+31615511544', '+31611614999'])
