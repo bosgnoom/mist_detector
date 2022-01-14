@@ -50,5 +50,4 @@ for i, image in enumerate(paths.list_images('afstellen_cam/')):
 
     signal.sendMessage("Biep biep dit is de mist miep",
                        ['/var/www/html/img/{}.jpg'.format(i)],
-                       #['+31615511544'])
-                       ['+31615511544', '+31611614999'])
+                       ['+316xxxxx'])

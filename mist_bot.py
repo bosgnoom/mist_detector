@@ -52,7 +52,7 @@ def msgRcv(timestamp, source, groupID, message, attachments):
     if message.upper() == "HELP":
         msg = "SET B xx \nSET T xx"
         global signal_bus
-        signal_bus.sendMessage(msg, [], ['+31615511544'])
+        #signal_bus.sendMessage(msg, [], ['+316xxxxxxx'])
 
 
 logging.info("Starting mist_bot")
@@ -63,7 +63,6 @@ signal.signal(signal.SIGINT, sigint_handler)
 bus = SystemBus()
 signal_bus = bus.get('org.asamk.Signal')
 signal_bus.onMessageReceived = msgRcv
-#signal_bus.sendMessage("Miep miep hier is de mist miep", [], ['+31615511544'])
 
 logging.debug("Going into loop...")
 loop.run()
